@@ -67,264 +67,159 @@
 		<canvas></canvas>
 
 		<script type="text/javascript" src="http://code.jquery.com/jquery-2.1.3.min.js"></script>
-		<script type="text/javascript" src="Point.js"></script>
+		<script type="text/javascript" src="Canvas.js"></script>
 		<script type="text/javascript" src="Bezier.js"></script>
+		<script type="text/javascript" src="Point.js"></script>
 		<script type="text/javascript" src="Grid.js"></script>
 		<script type="text/javascript">
 
 			// init
 			var offset = $('.buttons').outerWidth(true);
-			var canvas = $('canvas');
-			canvas.attr('width', $('body').width() - offset);
-			canvas.attr('height', $('body').height());
+			var canvas = new Canvas(document.getElementsByTagName('canvas')[0]);
 
-			// context and sizes
-			var ctx = canvas.get(0).getContext('2d');
-			var width = canvas.get(0).width;
-			var height = canvas.get(0).height;
+			canvas.setWidth($('body').width() - offset);
+			canvas.setHeight($('body').height());
+			canvas.setContext();
 
-			// colors
-			var color_curve = "#0eb1a2";
-			var color_bound = "#c6c6c6";
-			var color_bound_selected = "#a6a6a6";
-			var color_point = "#f20d52";
-			var color_line = "#5ad22d";
-			var color_grid = "#e5e5e5";
+			canvas.init();
 
-			// create grid
-			var grid = new Grid(width, height);
-			grid.setGridColor(color_grid);
-			// curves array
-			var beziercurves = [];
-			// curves count
-			var curves = 2;
-			// points count
-			var points = Math.floor(Math.random() * 3 + 3);
-			// create curves and points
-			for (var i = 0; i < curves; ++i){
-				beziercurves[i] = new Bezier();
-				beziercurves[i].setCurveColor(color_curve);
-				beziercurves[i].setBoundColor(color_bound);
-				beziercurves[i].setLineColor(color_line);
-				for (var j = 0; j < points; ++j){
-					beziercurves[i].addPoint(
-						new Point(
-							Math.floor(Math.random() * grid.cols + 1) * grid.step,
-							Math.floor(Math.random() * grid.rows + 1) * grid.step
-						)
-					);
-					beziercurves[i].points[j].setPointColor(color_point);
-				}
-			}
-
-
-			function draw(){
-				ctx.clearRect(0, 0, width, height);
-				grid.draw(ctx);
-				for (var i = curves - 1; i >= 0; --i){
-					beziercurves[i].draw(ctx);
-				}
-			}
-			draw();
-
+			canvas.draw();
 
 			// canvas events
 			var clicked_point, clicked_curve, tmp;
-			canvas.on('mousedown', function(event){
-				clicked_point = false;
-				clicked_curve = false;
-				beziercurves[0].selected = false;
-				if (!clicked_point){
-					for (var i = 0; i < curves; ++i){
-						if (beziercurves[i].clickPoint(event)){
-							if (i !== 0){
-								tmp = beziercurves[i];
-								beziercurves[i] = beziercurves[0];
-								beziercurves[0] = tmp;
-							}
-							// console.log('point click');
-							beziercurves[0].selected = true;
-							clicked_point = true;
-							draw();
-							break;
-						}
-					}
-				}
-				if (!clicked_point){
-					for (var i = 0; i < curves; ++i){
-						if (beziercurves[i].clickCurve(event)){
-							if (i !== 0){
-								tmp = beziercurves[i];
-								beziercurves[i] = beziercurves[0];
-								beziercurves[0] = tmp;
-							}
-							// console.log('curve click');
-							beziercurves[0].startPoint = grid.getPoint(event);
-							beziercurves[0].selected = true;
-							clicked_curve = true;
-							draw();
-							break;
-						}
-					}
-				}
-			});
-			canvas.on('mouseup', function(event){
-				if (clicked_point && beziercurves[0].selected){
-					beziercurves[0].movingPoint = null;
+			$(canvas.canvas).on('mousedown', function(event){
+				if (canvas.curves_count){
 					clicked_point = false;
-					// console.log('stop point moving');
-				}
-				if (!clicked_point && beziercurves[0].selected && clicked_curve){
-					beziercurves[0].startPoint = null;
 					clicked_curve = false;
-					// console.log('stop curve moving');
-				}
-				if (!clicked_point && !beziercurves[0].selected && !clicked_curve){
-					// console.log('unselect curve');
-					beziercurves[0].selected = false;
-					draw();
+					canvas.curves[0].selected = false;
+					if (!clicked_point){
+						for (var i = 0; i < canvas.curves_count; ++i){
+							if (canvas.curves[i].clickPoint(event)){
+								if (i !== 0){
+									tmp = canvas.curves[i];
+									canvas.curves[i] = canvas.curves[0];
+									canvas.curves[0] = tmp;
+								}
+								canvas.curves[0].selected = true;
+								clicked_point = true;
+								canvas.draw();
+								break;
+							}
+						}
+					}
+					if (!clicked_point){
+						for (var i = 0; i < canvas.curves_count; ++i){
+							if (canvas.curves[i].clickCurve(event)){
+								if (i !== 0){
+									tmp = canvas.curves[i];
+									canvas.curves[i] = canvas.curves[0];
+									canvas.curves[0] = tmp;
+								}
+								canvas.curves[0].startPoint = canvas.grid.getPoint(event);
+								canvas.curves[0].selected = true;
+								clicked_curve = true;
+								canvas.draw();
+								break;
+							}
+						}
+					}
 				}
 			});
-			canvas.on('mousemove', function(event){
-				if (clicked_point && beziercurves[0].selected){
-					// console.log('move point');
-					beziercurves[0].movePoint(grid.getPoint(event));
-					draw();
+			$(canvas.canvas).on('mouseup', function(event){
+				if (canvas.curves_count){
+					if (clicked_point && canvas.curves[0].selected){
+						canvas.curves[0].movingPoint = null;
+						clicked_point = false;
+					}
+					if (!clicked_point && canvas.curves[0].selected && clicked_curve){
+						canvas.curves[0].startPoint = null;
+						clicked_curve = false;
+					}
+					if (!clicked_point && !canvas.curves[0].selected && !clicked_curve){
+						canvas.curves[0].selected = false;
+						canvas.draw();
+					}
 				}
-				if (!clicked_point && beziercurves[0].selected && clicked_curve){
-					// console.log('move curve');
-					beziercurves[0].moveCurve(grid.getPoint(event));
-					draw();
+			});
+			$(canvas.canvas).on('mousemove', function(event){
+				if (canvas.curves_count){
+					if (clicked_point && canvas.curves[0].selected){
+						canvas.curves[0].movePoint(canvas.grid.getPoint(event));
+						canvas.draw();
+					}
+					if (!clicked_point && canvas.curves[0].selected && clicked_curve){
+						canvas.curves[0].moveCurve(canvas.grid.getPoint(event));
+						canvas.draw();
+					}
 				}
 			});
 			// change visibility
-			$('#toggle_grid').on('click', function(){
-				grid.toggleGrid();
-				draw();
-			});
 			$('#toggle_bounds').on('click', function(){
-				for (var i = 0; i < curves; ++i){
-					beziercurves[i].toggleBounds();
-				}
-				draw();
-			});
-			$('#toggle_lines').on('click', function(){
-				for (var i = 0; i < curves; ++i){
-					beziercurves[i].toggleLines();
-				}
-				draw();
+				canvas.toggleBounds();
+				canvas.draw();
 			});
 			$('#toggle_curve').on('click', function(){
-				for (var i = 0; i < curves; ++i){
-					beziercurves[i].toggleCurve();
-				}
-				draw();
+				canvas.toggleCurves();
+				canvas.draw();
 			});
 			$('#toggle_points').on('click', function(){
-				for (var i = 0; i < curves; ++i){
-					beziercurves[i].togglePoints();
-				}
-				draw();
+				canvas.togglePoints();
+				canvas.draw();
+			});
+			$('#toggle_lines').on('click', function(){
+				canvas.toggleLines();
+				canvas.draw();
+			});
+			$('#toggle_grid').on('click', function(){
+				canvas.grid.toggleGrid();
+				canvas.draw();
 			});
 			$('#toggle_indexes').on('click', function(){
-				for (var i = 0; i < curves; ++i){
-					beziercurves[i].toggleIndexes();
-				}
-				draw();
+				canvas.toggleIndexes();
+				canvas.draw();
 			});
 			// add or remove curves
 			$('#add_curve').on('click', function(){
-				curves = beziercurves.length + 1;
-				beziercurves[curves - 1] = new Bezier();
-				beziercurves[curves - 1].setCurveColor(color_curve);
-				beziercurves[curves - 1].setBoundColor(color_bound);
-				beziercurves[curves - 1].setLineColor(color_line);
-				for (var j = 0; j < points; ++j){
-					beziercurves[curves - 1].addPoint(
-						new Point(
-							Math.floor(Math.random() * grid.cols + 1) * grid.step,
-							Math.floor(Math.random() * grid.rows + 1) * grid.step
-						)
-					);
-					beziercurves[curves - 1].points[j].setPointColor(color_point);
-				}
-				draw();
+				canvas.addCurve();
+				canvas.draw();
 			});
 			$('#remove_curve').on('click', function(){
-				if (beziercurves[0].selected){
-					beziercurves.splice(0, 1);
-					curves = beziercurves.length;
-					beziercurves[0].selected = false;
-					draw();
-				} else {
-					alert('Select curve');
-				}
+				canvas.removeCurve();
+				canvas.draw();
 			});
 			// add or remove points
 			$('#add_point').on('click', function(){
-				if (beziercurves[0].selected){
-					beziercurves[0].addPoint(
-						new Point(
-							Math.floor(Math.random() * grid.cols + 1) * grid.step,
-							Math.floor(Math.random() * grid.rows + 1) * grid.step
-						)
-					);
-					beziercurves[0].points[beziercurves[0].points.length - 1].setPointColor(color_point);
-					draw();
-				} else {
-					alert('Select curve');
-				}
+				canvas.addPoint();
+				canvas.draw();
 			});
 			$('#remove_point').on('click', function(){
-				if (beziercurves[0].selected){
-					beziercurves[0].removePoint(beziercurves[0].points.length - 1);
-					draw();
-				} else {
-					alert('Select curve');
-				}
+				canvas.removePoint();
+				canvas.draw();
 			});
 			// changing color
-			$('#color_bound_selected').val(color_bound_selected).change(function(){
-				color_bound_selected = $(this).val();
-				for (var i = 0; i < curves; ++i){
-					beziercurves[i].setBoundSelectedColor(color_bound_selected);
-				}
-				draw();
+			$('#color_bound_selected').val(canvas.color_bound_selected).change(function(){
+				canvas.setBoundSelectedColor($(this).val());
+				canvas.draw();
 			});
-			$('#color_bound').val(color_bound).change(function(){
-				color_bound = $(this).val();
-				for (var i = 0; i < curves; ++i){
-					beziercurves[i].setBoundColor(color_bound);
-				}
-				draw();
+			$('#color_bound').val(canvas.color_bound).change(function(){
+				canvas.setBoundColor($(this).val());
+				canvas.draw();
 			});
-			$('#color_curve').val(color_curve).change(function(){
-				color_curve = $(this).val();
-				for (var i = 0; i < curves; ++i){
-					beziercurves[i].setCurveColor(color_curve);
-				}
-				draw();
+			$('#color_curve').val(canvas.color_curve).change(function(){
+				canvas.setCurveColor($(this).val());
+				canvas.draw();
 			});
-			$('#color_point').val(color_point).change(function(){
-				color_point = $(this).val();
-				for (var i = 0; i < curves; ++i){
-					for (var j = 0; j < beziercurves[i].points.length; ++j){
-						beziercurves[i].points[j].setPointColor(color_point);
-					}
-				}
-				draw();
+			$('#color_point').val(canvas.color_point).change(function(){
+				canvas.setPointColor($(this).val());
+				canvas.draw();
 			});
-			$('#color_line').val(color_line).change(function(){
-				color_line = $(this).val();
-				for (var i = 0; i < curves; ++i){
-					beziercurves[i].setLineColor(color_line);
-				}
-				draw();
+			$('#color_line').val(canvas.color_line).change(function(){
+				canvas.setLineColor($(this).val());
+				canvas.draw();
 			});
-			$('#color_grid').val(color_grid).change(function(){
-				color_grid = $(this).val();
-				grid.setGridColor(color_grid);
-				draw();
+			$('#color_grid').val(canvas.color_grid).change(function(){
+				canvas.grid.setGridColor($(this).val());
+				canvas.draw();
 			});
 
 		</script>

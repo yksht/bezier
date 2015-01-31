@@ -38,7 +38,7 @@ Bezier.prototype.setBoundColor = function(color){
 	this.color_bound = color;
 }
 Bezier.prototype.setBoundSelectedColor = function(color){
-	this.color_bound = color;
+	this.color_bound_selected = color;
 }
 Bezier.prototype.setLineColor = function(color){
 	this.color_line = color;
